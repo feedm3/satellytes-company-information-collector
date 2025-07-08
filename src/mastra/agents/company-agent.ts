@@ -1,32 +1,16 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
-import { createTool } from '@mastra/core/tools';
+
 import { Memory } from '@mastra/memory';
 import { LibSQLStore } from '@mastra/libsql';
-import { z } from 'zod';
 
-const companyTool = createTool({
-  id: 'getCompanyFoundingYear',
-  description: 'Get the company founding year.',
-  inputSchema: z.object({
-    companyName: z.string().describe('The name of the company.'),
-  }),
-  execute: async ({ context }) => {
-    const { companyName } = context;
-    console.log(`Getting founding year for ${companyName}`);
-
-    // Simulate a lookup. We found the founding year of Satellytes to be 2018.
-    if (companyName.toLowerCase().includes('satellytes')) {
-      return {
-        foundingYear: 2018,
-      };
-    }
-
-    return {
-      foundingYear: `founding year for ${companyName} could not be found.`,
-    };
-  },
-});
+import { companyFoundingYearTool } from '../tools/company-founding-year-tool';
+import { companyRevenueTool } from '../tools/company-revenue-tool';
+import { SummarizationMetric } from "@mastra/evals/llm";
+import {
+  ContentSimilarityMetric,
+  ToneConsistencyMetric,
+} from "@mastra/evals/nlp";
 
 export const companyAgent = new Agent({
   name: 'Company Agent',
@@ -38,12 +22,18 @@ export const companyAgent = new Agent({
       - Keep responses concise but informative.
 
       Use the getCompanyFoundingYear tool to fetch the company founding year.
+      Use the getCompanyRevenue tool to fetch the company revenue.
 `,
   model: openai('gpt-4o-mini'),
-  tools: { getCompanyFoundingYear: companyTool },
+  tools: { companyFoundingYearTool, companyRevenueTool },
   memory: new Memory({
     storage: new LibSQLStore({
       url: 'file:../mastra.db', // path is relative to the .mastra/output directory
     }),
   }),
+  evals: {
+    summarization: new SummarizationMetric(openai('gpt-4o-mini')),
+    contentSimilarity: new ContentSimilarityMetric(),
+    tone: new ToneConsistencyMetric(),
+  },
 });
