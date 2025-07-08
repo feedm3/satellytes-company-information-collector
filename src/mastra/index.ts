@@ -5,6 +5,7 @@ import { LibSQLStore } from '@mastra/libsql';
 import { companyWorkflow } from './workflows/company-information-workflow';
 import { companyAgent } from './agents/company-agent';
 import { weatherAgent } from './agents/weather-agent';
+import { VercelDeployer } from "@mastra/deployer-vercel";
 
 export const mastra = new Mastra({
   workflows: { companyWorkflow },
@@ -17,4 +18,5 @@ export const mastra = new Mastra({
     name: 'Mastra',
     level: 'info',
   }),
+  deployer: new VercelDeployer()
 });
